@@ -106,8 +106,30 @@ CDP(async function(client) {
     return result != null && result.value === true
   }
 
+  async function get_bbox() {
+    const expr = `
+      const el = document.body
+      const style = getComputedStyle(el)
+      const width = Math.ceil(parseFloat(style.marginLeft) + el.scrollWidth + parseFloat(style.marginRight))
+      const height = Math.ceil(parseFloat(style.marginTop) + el.scrollHeight + parseFloat(style.marginBottom))
+      JSON.stringify([width, height])
+    `
+    const result = await evaluate(expr)
+
+    if (result != null) {
+      const [width, height] = JSON.parse(result.value)
+      return {x: 0, y: 0, width, height, scale: 1}
+    } else
+      return undefined
+  }
+
+  async function get_image() {
+    return await Page.captureScreenshot({format: "png", clip: await get_bbox()})
+  }
+
   async function finish(timeout, success) {
-    console.log(JSON.stringify({success, timeout, errors, messages}))
+    const image = await get_image()
+    console.log(JSON.stringify({success, timeout, errors, messages, image}))
     await client.close()
   }
 
